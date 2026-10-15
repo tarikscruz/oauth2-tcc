@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: oauth_db
+      POSTGRES_USER: oauth_user
+      POSTGRES_PASSWORD: oauth_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oauth_user -d oauth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+
+  api:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  seed:
+    build: .
+    command: ["python", "-m", "scripts.seed"]
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["tools"]
+
+  newman:
+    image: postman/newman:alpine
+    volumes:
+      - ./postman:/etc/newman:ro
+    command: ["run", "/etc/newman/oauth2-tcc.postman_collection.json", "-e", "/etc/newman/docker.postman_environment.json", "--reporters", "cli,junit", "--reporter-junit-export", "/tmp/newman-results.xml"]
+    depends_on:
+      - api
+    profiles: ["tests"]
+
+volumes:
+  postgres_data:

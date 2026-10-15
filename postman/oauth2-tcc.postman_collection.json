@@ -1,0 +1,102 @@
+{
+    "info": {
+        "name": "OAuth2 TCC - testes automatizados",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Health",
+            "request": {
+                "method": "GET",
+                "url": "{{base_url}}/health"
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('API saudavel',()=>pm.response.to.have.status(200));"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Token sem parametros",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/x-www-form-urlencoded"
+                    }
+                ],
+                "body": {
+                    "mode": "urlencoded",
+                    "urlencoded": [
+                        {
+                            "key": "grant_type",
+                            "value": "authorization_code"
+                        },
+                        {
+                            "key": "client_id",
+                            "value": "{{client_id}}"
+                        }
+                    ]
+                },
+                "url": "{{base_url}}/oauth/token"
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Parametros ausentes rejeitados',()=>pm.response.to.have.status(400));",
+                            "pm.expect(pm.response.json().error).to.eql('invalid_request');"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "API sem token",
+            "request": {
+                "method": "GET",
+                "url": "{{base_url}}/api/profile"
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Bearer ausente rejeitado',()=>pm.response.to.have.status(401));"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "API com token aleatorio",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer token-invalido"
+                    }
+                ],
+                "url": "{{base_url}}/api/profile"
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Bearer invalido rejeitado',()=>pm.response.to.have.status(401));"
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}
